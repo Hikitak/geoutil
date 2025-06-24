@@ -137,3 +137,30 @@ func FilterPointsInPolygonConcurrent(points []Point, polygon []Point) []Point
 func FullLocation(p Point, geocoder Geocoder, elevation ElevationProvider) (Location, error)
 func BatchFullLocation(points []Point, geocoder Geocoder, elevation ElevationProvider) ([]Location, error)
 ```
+
+## Configuration Tips
+1. User-Agent: Always set a meaningful User-Agent in GeocoderConfig
+
+2. Rate Limits:
+    - Nominatim: 1 req/sec (default), increase only if you have permission
+
+    - Open-Elevation: 5-10 req/sec recommended
+
+3. Caching:
+
+    - Geocoding results cached for 24 hours
+
+    - Elevation data cached for 30 days
+
+4. Concurrency:
+
+    - I/O-bound operations (geocoding/elevation): Limit to 10-20 concurrent
+
+    - CPU-bound operations (distance/geometry): Use NumCPU() workers
+
+## Limitations
+- Timezone support requires external library
+
+- Vincenty formula not implemented (use Haversine for most cases)
+
+- Requires Go 1.18+ for generics in cache implementation
