@@ -1,90 +1,139 @@
 # Geoutil - Advanced Geospatial Utilities for Go
 
-Geoutil - это высокопроизводительный пакет для работы с геопространственными данными в Go, с оптимизированной поддержкой конкурентных операций. Пакет предоставляет:
+Geoutil is a high-performance Go package for geospatial operations with optimized concurrent processing. It provides:
 
-- Геокодирование и обратное геокодирование (через OSM Nominatim)
-- Получение данных о высоте (через Open-Elevation API)
-- Расчёты расстояний (Haversine)
-- Геометрические операции (точка в полигоне)
-- Пакетную обработку с автоматическим ограничением запросов
-- Кеширование результатов
+- Geocoding and reverse geocoding (OSM Nominatim)
+- Elevation data (Open-Elevation API)
+- Distance calculations (Haversine formula)
+- Point-in-polygon filtering
+- Batch processing with automatic rate limiting
+- Comprehensive caching and error handling
 
-## Установка
+## Installation
 
 ```bash
-go get github.com/yourusername/geoutil
+go get github.com/Hikitak/geoutil
 ```
 
-## Основные функции
-### Геокодирование
+## Quick Start
+### Geocoding
 ```go
-config := geoutil.GeocoderConfig{
-    UserAgent: "MyApp/1.0",
-    RequestsPerSec: 2,
-}
-geocoder := geoutil.NewNominatimGeocoder(config)
+package main
 
-// Одиночное геокодирование
-point, _ := geocoder.Geocode("Red Square, Moscow")
-
-// Пакетное геокодирование
-addresses := []string{"Paris", "Berlin", "London"}
-points, _ := geocoder.BatchGeocode(addresses)
-```
-
-### Получение высот
-```go
-elevation := geoutil.NewOpenElevationProvider(5) // 5 запросов/сек
-
-// Одиночный запрос
-height, _ := elevation.GetElevation(geoutil.Point{55.75, 37.61})
-
-// Пакетная обработка
-points := []geoutil.Point{{55.75, 37.61}, {59.93, 30.31}}
-heights, _ := elevation.BatchGetElevation(points)
-```
-### Расчёты расстояний
-```go
-moscow := geoutil.Point{55.7558, 37.6173}
-newYork := geoutil.Point{40.7128, -74.0060}
-
-// Расстояние между двумя точками
-distance := geoutil.DistanceHaversine(moscow, newYork) // ~7500 км
-
-// Матрица расстояний
-points := []geoutil.Point{moscow, newYork, {51.5074, -0.1278}}
-matrix := geoutil.BatchDistanceConcurrent(points, geoutil.DistanceHaversine)
-```
-### Геометрические операции
-```go
-// Определение полигона Москвы
-polygon := []geoutil.Point{
-    {55.113, 36.8}, {56.021, 37.967}, 
-    {56.047, 37.806}, {55.631, 37.332},
-}
-
-// Проверка точки в полигоне
-inside := geoutil.IsPointInPolygon(geoutil.Point{55.75, 37.61}, polygon) // true
-
-// Фильтрация точек
-points := []geoutil.Point{
-    {55.75, 37.61}, {40.71, -74.00}, {55.60, 37.50},
-}
-filtered := geoutil.FilterPointsInPolygonConcurrent(points, polygon)
-```
-### Получение полной информации
-```go
-// Полный геопрофиль точки
-location, _ := geoutil.FullLocation(
-    geoutil.Point{55.7558, 37.6173},
-    geocoder,
-    elevation,
+import (
+	"fmt"
+	"time"
+	
+	"github.com/yourusername/geoutil"
 )
 
-// Пакетная обработка
-points := []geoutil.Point{
-    {55.7558, 37.6173}, // Москва
-    {40.7128, -74.0060}, // Нью-Йорк
+func main() {
+	config := geoutil.GeocoderConfig{
+		UserAgent:      "MyApp/1.0",
+		RequestsPerSec: 2,
+		Timeout:        15 * time.Second,
+	}
+	gc := geoutil.NewNominatimGeocoder(config)
+	
+	// Single geocode
+	point, _ := gc.Geocode("Eiffel Tower, Paris")
+	fmt.Printf("Coordinates: %.4f, %.4f\n", point.Lat, point.Lon)
+	
+	// Batch geocode
+	addresses := []string{"London", "Berlin", "Madrid"}
+	points, _ := gc.BatchGeocode(addresses)
+	for i, p := range points {
+		fmt.Printf("%s: %.4f, %.4f\n", addresses[i], p.Lat, p.Lon)
+	}
 }
-locations, _ := geoutil.BatchFullLocation(points, geocoder, elevation)
+```
+
+### Distance Calculations
+
+```go
+func main() {
+	moscow := geoutil.Point{55.7558, 37.6173}
+	newYork := geoutil.Point{40.7128, -74.0060}
+	
+	// Single distance
+	distance := geoutil.DistanceHaversine(moscow, newYork)
+	fmt.Printf("Distance: %.2f km\n", distance)
+	
+	// Distance matrix
+	points := []geoutil.Point{
+		{55.7558, 37.6173}, // Moscow
+		{40.7128, -74.0060}, // New York
+		{51.5074, -0.1278}, // London
+	}
+	matrix := geoutil.BatchDistanceConcurrent(points, geoutil.DistanceHaversine)
+	fmt.Println("Distance matrix:", matrix)
+}
+```
+### Point-in-Polygon Filtering
+
+```go
+func main() {
+	// Define polygon (London approximate boundaries)
+	polygon := []geoutil.Point{
+		{51.28, -0.50}, {51.68, -0.50},
+		{51.68, 0.25}, {51.28, 0.25},
+	}
+	
+	// Generate random points
+	points := make([]geoutil.Point, 10_000)
+	for i := range points {
+		points[i] = geoutil.Point{
+			Lat: 51.3 + rand.Float64()*0.4,
+			Lon: -0.45 + rand.Float64()*0.7,
+		}
+	}
+	
+	// Filter points in polygon
+	filtered := geoutil.FilterPointsInPolygonConcurrent(points, polygon)
+	fmt.Printf("Points inside polygon: %d/%d\n", len(filtered), len(points))
+}
+```
+
+## API Documentation
+### Types
+```go
+type Point struct {
+    Lat float64 // Latitude [-90, 90]
+    Lon float64 // Longitude [-180, 180]
+}
+
+type Location struct {
+    Country   string  // Country name
+    City      string  // City name
+    Address   string  // Full address
+    Lat       float64 // Latitude
+    Lon       float64 // Longitude
+    Elevation int     // Elevation in meters
+    Timezone  string  // IANA timezone
+}
+```
+### Core Functions
+
+```go
+// Geocoding
+func NewNominatimGeocoder(config GeocoderConfig) *NominatimGeocoder
+func (n *NominatimGeocoder) Geocode(address string) (Point, error)
+func (n *NominatimGeocoder) BatchGeocode(addresses []string) ([]Point, error)
+
+// Elevation
+func NewOpenElevationProvider(rps int) *OpenElevationProvider
+func (o *OpenElevationProvider) GetElevation(p Point) (int, error)
+func (o *OpenElevationProvider) BatchGetElevation(points []Point) ([]int, error)
+
+// Distance
+func DistanceHaversine(p1, p2 Point) float64
+func BatchDistanceConcurrent(points []Point, distanceFunc func(p1, p2 Point) float64) [][]float64
+
+// Geometry
+func IsPointInPolygon(p Point, polygon []Point) bool
+func FilterPointsInPolygonConcurrent(points []Point, polygon []Point) []Point
+
+// Comprehensive Data
+func FullLocation(p Point, geocoder Geocoder, elevation ElevationProvider) (Location, error)
+func BatchFullLocation(points []Point, geocoder Geocoder, elevation ElevationProvider) ([]Location, error)
 ```

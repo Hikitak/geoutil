@@ -1,43 +1,42 @@
+// Package geoutil provides advanced geospatial utilities with optimized concurrent processing.
 package geoutil
 
-import (
-	"time"
-)
+import "time"
 
-// Point - географическая точка
+// Point represents a geographic coordinate
 type Point struct {
-	Lat float64 `json:"lat"` // Широта (-90 до 90)
-	Lon float64 `json:"lon"` // Долгота (-180 до 180)
+    Lat float64 `json:"lat"` // Latitude in degrees (-90 to 90)
+    Lon float64 `json:"lon"` // Longitude in degrees (-180 to 180)
 }
 
-// Location - полная географическая информация
+// Location contains comprehensive geographic information
 type Location struct {
-	Country   string  `json:"country"`   // Страна
-	City      string  `json:"city"`      // Город
-	Address   string  `json:"address"`   // Адрес
-	Lat       float64 `json:"lat"`       // Широта
-	Lon       float64 `json:"lon"`       // Долгота
-	Elevation int     `json:"elevation"` // Высота (метры)
-	Timezone  string  `json:"timezone"`  // Временная зона
+    Country   string  `json:"country"`   // Country name
+    City      string  `json:"city"`      // City name
+    Address   string  `json:"address"`   // Full address
+    Lat       float64 `json:"lat"`       // Latitude
+    Lon       float64 `json:"lon"`       // Longitude
+    Elevation int     `json:"elevation"` // Elevation in meters
+    Timezone  string  `json:"timezone"`  // IANA timezone identifier
 }
 
-// GeocoderConfig - конфигурация геокодера
+// GeocoderConfig defines settings for geocoding services
 type GeocoderConfig struct {
-	UserAgent      string        `json:"user_agent"`     // User-Agent для запросов
-	RequestsPerSec int           `json:"requests_per_sec"` // Лимит запросов/сек
-	Timeout        time.Duration `json:"timeout"`        // Таймаут запросов
+    UserAgent      string        `json:"user_agent"`      // Required User-Agent header for APIs
+    RequestsPerSec int           `json:"requests_per_sec"` // Request rate limit (requests/second)
+    Timeout        time.Duration `json:"timeout"`         // Request timeout duration
 }
 
-// Geocoder - интерфейс геокодирования
+// Geocoder interface defines geocoding operations
 type Geocoder interface {
-	Geocode(address string) (Point, error)
-	ReverseGeocode(p Point) (Location, error)
-	BatchGeocode(addresses []string) ([]Point, error)
-	BatchReverseGeocode(points []Point) ([]Location, error)
+    Geocode(address string) (Point, error)                   // Convert address to coordinates
+    ReverseGeocode(p Point) (Location, error)                // Convert coordinates to address
+    BatchGeocode(addresses []string) ([]Point, error)        // Batch address processing
+    BatchReverseGeocode(points []Point) ([]Location, error)  // Batch reverse geocoding
 }
 
-// ElevationProvider - интерфейс работы с высотами
+// ElevationProvider interface defines elevation data operations
 type ElevationProvider interface {
-	GetElevation(p Point) (int, error)
-	BatchGetElevation(points []Point) ([]int, error)
+    GetElevation(p Point) (int, error)              // Get elevation for single point
+    BatchGetElevation(points []Point) ([]int, error) // Batch elevation processing
 }
